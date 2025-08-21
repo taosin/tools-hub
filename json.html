@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON格式化工具</title>
+  <style>
+    body { font-family: "微软雅黑", Arial, sans-serif; background: #fafafa; margin: 0; padding: 28px; }
+    .container { background: #fff; max-width: 830px; margin: 0 auto; border-radius: 9px; box-shadow: 0 2px 8px #eee; padding: 28px 36px; }
+    h2 { margin: 0 0 20px 0; font-weight: 500; }
+    textarea { font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace; font-size: 15px; border: 1px solid #ddd; border-radius: 7px; padding: 10px; width: 100%; box-sizing: border-box; min-height: 120px; margin-bottom: 12px; background: #fcfcfc; }
+    .btn-bar { margin-bottom: 18px; }
+    button {
+      background: #15c86b; color: #fff; border: none; border-radius: 6px; padding: 7px 22px; font-size: 15px; cursor: pointer; margin-right: 12px;
+      transition: background 0.2s;
+    }
+    button:active { background: #119754; }
+    pre {
+      background: #f6f6f6; border-radius: 7px; font-size: 15px; padding: 15px 11px; white-space: pre-wrap; word-break: break-all; min-height: 90px; }
+    .error { color: #d42c2c; font-weight: bold; }
+    .copy-tip { color: #069509; margin-left: 10px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>JSON 格式化工具</h2>
+    <textarea id="input" placeholder="请输入 JSON 原文或带转义字符串...">{\"a\":1,\"b\":\"hello\\nworld\"}</textarea>
+    <div class="btn-bar">
+      <button onclick="unescapeJson()">去转义</button>
+      <button onclick="formatJson()">格式化</button>
+      <button onclick="copyResult()">复制结果</button>
+      <span id="copy-tip" class="copy-tip"></span>
+    </div>
+    <pre id="result"></pre>
+  </div>
+  <script>
+    function unescapeJson() {
+      let text = document.getElementById('input').value;
+
+      // 1. 去除转义
+      // 先把 \" 替换为 "，\\n 替换为换行，\\t 替换为 tab，\\r 替换为回车，\\uXXXX 也处理
+      let unescaped = text
+        .replace(/\\\"/g, "\"")
+        .replace(/\\\\/g, "\\") // 防止转义字符变乱
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\r/g, "\r")
+        // 处理 unicode
+        .replace(/\\u([\dA-Fa-f]{4})/g, function(m, g1){return String.fromCharCode(parseInt(g1,16));});
+
+      // 去除最外层的引号（如是包裹的字符串）
+      if (unescaped.startsWith('"') && unescaped.endsWith('"')) {
+        unescaped = unescaped.slice(1, -1);
+      }
+      document.getElementById('input').value = unescaped;
+      document.getElementById('result').innerText = '已去转义！如内容为字符串 JSON，请继续点击格式化。';
+    }
+
+    function formatJson() {
+      const text = document.getElementById('input').value.trim();
+
+      // 是否为字符串包裹的 JSON
+      let jsonStr = text;
+      try {
+        // 如果是字符串，尝试先 JSON.parse
+        if (
+          (jsonStr.startsWith('"') && jsonStr.endsWith('"'))
+          || (jsonStr.startsWith("'") && jsonStr.endsWith("'"))
+        ) {
+          jsonStr = JSON.parse(jsonStr);
+        }
+        // 如果是对象字面量，则直接 parse
+        let obj = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+        let res = JSON.stringify(obj, null, 2);
+        document.getElementById('result').innerText = res;
+        document.getElementById('result').className = '';
+      } catch (e) {
+        document.getElementById('result').innerText = "格式化失败：" + e.message;
+        document.getElementById('result').className = 'error';
+      }
+    }
+
+    function copyResult() {
+      const res = document.getElementById('result').innerText;
+      if (!res) return;
+      // 复制到剪贴板
+      navigator.clipboard.writeText(res).then(function(){
+        document.getElementById('copy-tip').innerText = '已复制！';
+        setTimeout(() => document.getElementById('copy-tip').innerText = '', 1600);
+      });
+    }
+  </script>
+</body>
+</html>
