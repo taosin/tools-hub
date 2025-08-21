@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>日期时间计算器</title>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/duration.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/weekday.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isLeapYear.js"></script>
+  <script>
+    dayjs.extend(window.dayjs_plugin_duration);
+    dayjs.extend(window.dayjs_plugin_weekday);
+    dayjs.extend(window.dayjs_plugin_isLeapYear);
+  </script>
+  <style>
+    body { font-family: "微软雅黑", Arial, sans-serif; background: #fafafa; margin: 0; padding: 32px; }
+    h2 { font-weight: 500; margin-bottom: 24px; }
+    .container { display: flex; gap: 32px; }
+    .panel {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #eee;
+      padding: 18px 24px; flex: 1; min-width: 470px;
+    }
+    .panel-title {
+      font-size: 18px; font-weight: bold; color: #222; margin-bottom: 16px;
+      background: #f6f6f6; padding: 7px 14px; border-radius: 6px;
+    }
+    .form-group { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    label { min-width: 72px; font-size: 15px; color: #444; }
+    select, input {
+      font-size: 16px; padding: 7px 6px; border: 1px solid #ddd;
+      border-radius: 4px; background: #fcfcfc; min-width: 70px;
+    }
+    select { min-width: 48px; }
+    .btn {
+      background: #1cc76a; color: #fff; border: none; border-radius: 6px;
+      padding: 7px 24px; font-size: 15px; cursor: pointer; transition: background 0.2s;
+    }
+    .btn:active { background: #179d55; }
+    .resultbox {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #eee;
+      padding: 18px 24px; margin-top: 24px; min-height: 180px; font-size: 16px;
+      white-space: pre-wrap; line-height: 1.8;
+    }
+    .singlebox {
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #eee;
+      padding: 18px 24px; margin-top: 24px; font-size: 18px;
+      height: 57px; display: flex; align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>日期时间计算器</h2>
+  <div class="container">
+    <!-- 计算间隔 -->
+    <div class="panel">
+      <div class="panel-title">计算间隔</div>
+      <div class="form-group">
+        <label>开始时间</label>
+        <select id="start-year"></select>
+        <select id="start-month"></select>
+        <select id="start-day"></select>
+        <select id="start-hour"></select>
+        <span>:</span>
+        <select id="start-minute"></select>
+      </div>
+      <div class="form-group">
+        <label>结束时间</label>
+        <select id="end-year"></select>
+        <select id="end-month"></select>
+        <select id="end-day"></select>
+        <select id="end-hour"></select>
+        <span>:</span>
+        <select id="end-minute"></select>
+      </div>
+      <div class="form-group">
+        <button class="btn" onclick="calcInterval()">计算间隔</button>
+      </div>
+    </div>
+
+    <!-- 计算日期 -->
+    <div class="panel">
+      <div class="panel-title">计算日期</div>
+      <div class="form-group">
+        <label>开始日期</label>
+        <select id="calc-year"></select>
+        <select id="calc-month"></select>
+        <select id="calc-day"></select>
+      </div>
+      <div class="form-group">
+        <label>条件</label>
+        <select id="calc-dir">
+          <option value="after">往后</option>
+          <option value="before">往前</option>
+        </select>
+        <input type="number" id="calc-num" value="10" min="1" style="width:60px;">
+        <select id="calc-unit">
+          <option value="day">天</option>
+          <option value="week">星期</option>
+          <option value="month">月</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <button class="btn" onclick="calcDate()">计算日期</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 32px;">
+    <div style="flex:1;">
+      <div class="resultbox" id="interval-result"></div>
+    </div>
+    <div style="flex:1;">
+      <div class="singlebox" id="calcdate-result"></div>
+    </div>
+  </div>
+
+<script>
+  // 初始化下拉
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function fillSelect(id, min, max, def) {
+    let sel = document.getElementById(id);
+    sel.innerHTML = '';
+    for(let i = min; i <= max; i++) {
+      let opt = document.createElement('option');
+      opt.value = i;
+      opt.innerText = pad(i);
+      if (i === def) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+  function fillYear(id, def) {
+    let sel = document.getElementById(id);
+    sel.innerHTML = '';
+    for(let i=2020; i<=2030; i++) {
+      let opt = document.createElement('option');
+      opt.value = i;
+      opt.innerText = i;
+      if (i === def) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+  function updateDaySel(yearId, monthId, dayId, def) {
+    let y = parseInt(document.getElementById(yearId).value);
+    let m = parseInt(document.getElementById(monthId).value);
+    let days = dayjs(`${y}-${pad(m)}`).daysInMonth();
+    fillSelect(dayId, 1, days, def);
+  }
+  // 初始化所有下拉
+  function initDateControls() {
+    let now = dayjs();
+    fillYear('start-year', 2025); fillYear('end-year', 2025); fillYear('calc-year', 2025);
+    fillSelect('start-month', 1, 12, 8); fillSelect('end-month', 1, 12, 8); fillSelect('calc-month', 1, 12, 8);
+    updateDaySel('start-year','start-month','start-day',1);
+    updateDaySel('end-year','end-month','end-day',31);
+    updateDaySel('calc-year','calc-month','calc-day',21);
+
+    fillSelect('start-hour', 0, 23, 0); fillSelect('end-hour', 0, 23, 0);
+    fillSelect('start-minute', 0, 59, 0); fillSelect('end-minute', 0, 59, 0);
+  }
+  // 监听月改变-自动更新日
+  document.addEventListener('change', function(e) {
+    if(['start-month','start-year'].includes(e.target.id)) updateDaySel('start-year','start-month','start-day',parseInt(document.getElementById('start-day').value));
+    if(['end-month','end-year'].includes(e.target.id)) updateDaySel('end-year','end-month','end-day',parseInt(document.getElementById('end-day').value));
+    if(['calc-month','calc-year'].includes(e.target.id)) updateDaySel('calc-year','calc-month','calc-day',parseInt(document.getElementById('calc-day').value));
+  });
+
+  // 计算间隔
+  function calcInterval() {
+    let sy = document.getElementById('start-year').value;
+    let sm = document.getElementById('start-month').value;
+    let sd = document.getElementById('start-day').value;
+    let sh = document.getElementById('start-hour').value;
+    let sn = document.getElementById('start-minute').value;
+
+    let ey = document.getElementById('end-year').value;
+    let em = document.getElementById('end-month').value;
+    let ed = document.getElementById('end-day').value;
+    let eh = document.getElementById('end-hour').value;
+    let en = document.getElementById('end-minute').value;
+
+    let start = dayjs(`${sy}-${pad(sm)}-${pad(sd)} ${pad(sh)}:${pad(sn)}`);
+    let end = dayjs(`${ey}-${pad(em)}-${pad(ed)} ${pad(eh)}:${pad(en)}`);
+
+    let result = '';
+    result += `开始时间: ${start.format('YYYY年MM月DD日 HH:mm')}\n`;
+    result += `结束时间: ${end.format('YYYY年MM月DD日 HH:mm')}\n\n`;
+
+    if (!start.isValid() || !end.isValid() || end.isBefore(start)) {
+      result += "时间选择无效或结束早于开始。";
+      document.getElementById('interval-result').innerText = result;
+      return;
+    }
+    let diffYear = end.year() - start.year() - (end.month() < start.month() || (end.month() === start.month() && end.date() < start.date()) ? 1 : 0);
+    let diffMonth = (end.year() - start.year()) * 12 + end.month() - start.month() - (end.date() < start.date() ? 1 : 0);
+    let abs = end.diff(start);
+    let diffDay = end.diff(start, 'day');
+    let diffHour = end.diff(start, 'hour');
+    let diffMinute = end.diff(start, 'minute');
+    let diffWeek = Math.floor(diffDay / 7);
+    let weekRest = diffDay % 7;
+
+    // 累计
+    let totalMonth = diffMonth;
+    let totalDay = diffDay;
+    let totalWeek = diffWeek;
+
+    // 余数
+    let monthRest = end.date() >= start.date() ? 0 : end.date() + dayjs(end.year(), end.month(), 0).daysInMonth() - start.date();
+    let yearRest = diffMonth % 12;
+    let weekTotalStr = `${diffWeek}周余${weekRest}天`;
+
+    result += `相差年数：${diffYear}年\n`;
+    result += `相差月数：${diffMonth}月\n`;
+    result += `相差周数：${diffWeek}周${weekRest}天\n`;
+    result += `相差天数：${diffDay}天\n`;
+    result += `相差小时：${diffHour}时\n`;
+    result += `相差分钟：${diffMinute}分\n\n`;
+
+    // 补充累计
+    result += `合计年数：${diffYear}年${yearRest}月\n`;
+    result += `合计天数：${diffDay}天\n`;
+    result += `合计周数：${weekTotalStr}\n`;
+
+    document.getElementById('interval-result').innerText = result;
+  }
+
+  // 计算日期
+  function calcDate() {
+    let y = document.getElementById('calc-year').value;
+    let m = document.getElementById('calc-month').value;
+    let d = document.getElementById('calc-day').value;
+    let dir = document.getElementById('calc-dir').value;
+    let num = parseInt(document.getElementById('calc-num').value);
+    let unit = document.getElementById('calc-unit').value;
+    let start = dayjs(`${y}-${pad(m)}-${pad(d)}`);
+
+    let target = (dir === 'after' ? start.add(num, unit) : start.subtract(num, unit));
+    let weekdayMap = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
+    let resStr = `${target.format("YYYY-MM-DD")} ${weekdayMap[target.day()]}`;
+    document.getElementById('calcdate-result').innerText = resStr;
+  }
+
+  // 初始填充
+  window.onload = function() {
+    initDateControls();
+    calcInterval();
+    calcDate();
+  };
+</script>
+</body>
+</html>
