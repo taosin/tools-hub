@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Unix时间戳转换器</title>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <style>
+    body {
+      font-family: "微软雅黑", Arial, sans-serif;
+      background: #fafafa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 24px;
+    }
+    .panel {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px #ddd;
+      padding: 24px;
+      min-width: 430px;
+      flex: 1;
+    }
+    .panel-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #222;
+      margin-bottom: 18px;
+      background: #f6f6f6;
+      padding: 8px 16px;
+      border-radius: 6px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    label {
+      min-width: 54px;
+      color: #444;
+      font-size: 16px;
+    }
+    input, select {
+      font-size: 16px;
+      padding: 8px;
+      border: 1px solid #dcdcdc;
+      border-radius: 4px;
+      width: 220px;
+      box-sizing: border-box;
+    }
+    select {
+      width: 80px;
+    }
+    .btn {
+      background: #15c86b;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 10px;
+      transition: background 0.2s;
+    }
+    .btn:active {
+      background: #12b05d;
+    }
+    .result {
+      background: #f4f4f4;
+      color: #555;
+      padding: 8px 18px;
+      border-radius: 6px;
+      display: inline-block;
+      font-size: 16px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Unix时间戳 -> 时间 -->
+    <div class="panel">
+      <div class="panel-title">Unix时间戳 → 时间</div>
+      <div class="form-group">
+        <label for="timestamp-input">时间戳</label>
+        <input type="text" id="timestamp-input" value="1755785446" />
+        <select id="timestamp-unit">
+          <option value="s">秒(s)</option>
+          <option value="ms">毫秒(ms)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <button class="btn" onclick="convertToDatetime()">转换</button>
+        <button class="btn" onclick="useNowTimestamp()">当前时间戳</button>
+      </div>
+      <div id="datetime-result" class="result"></div>
+    </div>
+
+    <!-- 时间 -> Unix时间戳 -->
+    <div class="panel">
+      <div class="panel-title">时间 → Unix时间戳</div>
+      <div class="form-group">
+        <label for="datetime-input">时间</label>
+        <input type="text" id="datetime-input" value="2025-08-21 22:10:46" placeholder="YYYY-MM-DD HH:mm:ss" />
+        <select id="datetime-unit">
+          <option value="s">秒(s)</option>
+          <option value="ms">毫秒(ms)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <button class="btn" onclick="convertToTimestamp()">转换</button>
+      </div>
+      <div id="timestamp-result" class="result"></div>
+    </div>
+  </div>
+  <script>
+    // Unix时间戳 → 时间
+    function convertToDatetime() {
+      const ts = document.getElementById('timestamp-input').value.trim();
+      const unit = document.getElementById('timestamp-unit').value;
+      let timestamp = parseInt(ts, 10);
+      if (isNaN(timestamp)) {
+        document.getElementById('datetime-result').innerText = "请输入有效的时间戳";
+        return;
+      }
+      // 毫秒单位
+      if (unit === 's') timestamp = timestamp * 1000;
+      // 用 dayjs 格式化
+      const dt = dayjs(timestamp);
+      if (!dt.isValid()) {
+        document.getElementById('datetime-result').innerText = "时间戳无效";
+        return;
+      }
+      document.getElementById('datetime-result').innerText = dt.format("YYYY-MM-DD HH:mm:ss");
+    }
+
+    // 时间 → Unix时间戳
+    function convertToTimestamp() {
+      const dtStr = document.getElementById('datetime-input').value.trim();
+      const unit = document.getElementById('datetime-unit').value;
+      const dt = dayjs(dtStr);
+      if (!dt.isValid()) {
+        document.getElementById('timestamp-result').innerText = "请输入有效的时间";
+        return;
+      }
+      let ts = dt.valueOf();
+      if (unit === 's') ts = Math.floor(ts / 1000);
+      document.getElementById('timestamp-result').innerText = ts;
+    }
+
+    // 设置当前时间戳
+    function useNowTimestamp() {
+      let now = Date.now();
+      const unit = document.getElementById('timestamp-unit').value;
+      if (unit === 's') now = Math.floor(now / 1000);
+      document.getElementById('timestamp-input').value = now;
+      convertToDatetime();
+    }
+
+    // 页面加载时初始化转换
+    window.onload = function() {
+      convertToDatetime();
+      convertToTimestamp();
+    }
+  </script>
+</body>
+</html>
